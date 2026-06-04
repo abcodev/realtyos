@@ -267,3 +267,7 @@ LLM이 근거에 없는 지역이나 단지를 만들어내지 않도록 guardra
 - 대량 데이터, 임베딩, provider 선택, 비용/성능 trade-off를 고려한 설계
 - Spring Boot 기반 인증, API, persistence, streaming 기능의 end-to-end 구현
 - 기능 추가 이후에도 계층 의존과 책임 분리를 지속적으로 개선하는 리팩터링
+
+## Demo
+
+대표 시연 질문과 확인 포인트는 [docs/demo-scenarios.md](docs/demo-scenarios.md)에 정리했습니다.

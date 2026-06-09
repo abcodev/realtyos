@@ -14,7 +14,7 @@
 | 핵심 도메인 | 아파트 실거래가, 지역/단지 비교, 매수 후보 분석 |
 | 주요 기술 | Java 21, Spring Boot, PostgreSQL, pgvector, OpenAI, Ollama, SSE |
 | 인증 | Kakao/Google OAuth2, JWT |
-| 주요 구현 | RAG 파이프라인, 임베딩 적재, AI 라우팅, 의사결정 엔진, 사용자 AI 메모리 |
+| 주요 구현 | RAG 파이프라인, 임베딩 적재, Kafka 비동기 처리, AI 라우팅, 의사결정 엔진, 사용자 AI 메모리 |
 
 ---
 
@@ -135,6 +135,16 @@ completed
 
 최근 질문을 클릭했을 때 단순 재요청이 아니라, 당시 답변을 그대로 확인할 수 있도록 설계했습니다.
 
+### 8. Kafka 비동기 임베딩 파이프라인
+
+임베딩 생성은 오래 걸리고 외부 AI API 장애 영향을 받을 수 있어 Kafka 기반 비동기 처리 흐름을 추가했습니다.
+
+- Outbox Pattern으로 DB 저장과 이벤트 발행 안정성 확보
+- Consumer Group 기반 임베딩 worker 확장
+- Retry topic으로 일시 장애 재처리
+- DLQ topic으로 반복 실패 이벤트 격리
+- Saga table로 임베딩 작업 상태 추적
+
 ---
 
 ## Architecture
@@ -200,6 +210,7 @@ user
 - 지역명 해석을 `RegionResolver`로 집중화
 - 의사결정 답변 포맷과 통계 요약 계산을 별도 컴포넌트로 분리
 - RAG 답변 흐름에 내부 router를 추가해 질문 의도별 처리 분기 명확화
+- RAG 임베딩 작업에 Kafka, Outbox Pattern, Saga, Retry/DLQ 구조 적용
 
 ---
 
@@ -210,6 +221,7 @@ user
 | POST | `/api/v1/rag/search` | RAG 문서 검색 |
 | POST | `/api/v1/rag/ask` | 자연어 질문 답변 |
 | POST | `/api/v1/rag/ask/stream` | SSE 기반 자연어 질문 답변 |
+| POST | `/api/v1/rag/documents/embeddings/async` | Kafka 기반 임베딩 작업 요청 |
 | GET | `/api/v1/rag/documents/stats` | RAG 인덱스 상태 조회 |
 | GET | `/api/v1/rag/memory/me` | 사용자 AI 메모리 조회 |
 | GET | `/api/v1/rag/memory/me/events` | 사용자 질문/답변 히스토리 조회 |
@@ -253,6 +265,7 @@ LLM이 근거에 없는 지역이나 단지를 만들어내지 않도록 guardra
 - 단일 API 내부 라우팅으로 검색/시세/비교/추천 처리
 - 실거래 기반 후보 점수화와 비교표 생성
 - SSE 기반 답변 스트리밍
+- Kafka 기반 비동기 임베딩 작업 처리
 - 사용자별 AI 메모리와 답변 히스토리 저장
 - Kakao/Google OAuth2 로그인과 JWT 인증
 
@@ -265,9 +278,12 @@ LLM이 근거에 없는 지역이나 단지를 만들어내지 않도록 guardra
 - RAG를 단순 데모가 아니라 실제 도메인 데이터 검색/분석 흐름으로 구성
 - LLM 답변 품질 문제를 deterministic 분석 엔진과 guardrail로 보완
 - 대량 데이터, 임베딩, provider 선택, 비용/성능 trade-off를 고려한 설계
+- Kafka Consumer Group, Retry, DLQ, Saga, Outbox Pattern을 적용한 비동기 작업 설계
 - Spring Boot 기반 인증, API, persistence, streaming 기능의 end-to-end 구현
 - 기능 추가 이후에도 계층 의존과 책임 분리를 지속적으로 개선하는 리팩터링
 
 ## Demo
 
 대표 시연 질문과 확인 포인트는 [docs/demo-scenarios.md](docs/demo-scenarios.md)에 정리했습니다.
+
+Kafka 기반 RAG 임베딩 파이프라인은 [docs/architecture/kafka-rag-pipeline.md](docs/architecture/kafka-rag-pipeline.md)에 정리했습니다.

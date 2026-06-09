@@ -14,6 +14,16 @@ spring:
     name: realtyos-api
   profiles:
     active: loc
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:realtyos-rag-workers}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
   security:
     oauth2:
       client:
@@ -117,6 +127,22 @@ rag:
     embedding-limit: ${RAG_SYNC_EMBEDDING_LIMIT:5000}
     embedding-provider: ${RAG_SYNC_EMBEDDING_PROVIDER:OPENAI}
     embedding-model: ${RAG_SYNC_EMBEDDING_MODEL:text-embedding-3-small}
+
+app:
+  kafka:
+    enabled: ${APP_KAFKA_ENABLED:false}
+    consumer-group: ${KAFKA_CONSUMER_GROUP:realtyos-rag-workers}
+    topics:
+      rag-embedding-requested: ${KAFKA_TOPIC_RAG_EMBEDDING_REQUESTED:realtyos.rag.embedding.requested}
+      rag-embedding-retry: ${KAFKA_TOPIC_RAG_EMBEDDING_RETRY:realtyos.rag.embedding.retry}
+      rag-embedding-dlq: ${KAFKA_TOPIC_RAG_EMBEDDING_DLQ:realtyos.rag.embedding.dlq}
+    outbox:
+      enabled: ${APP_KAFKA_OUTBOX_ENABLED:false}
+      publish-limit: ${APP_KAFKA_OUTBOX_PUBLISH_LIMIT:50}
+      fixed-delay-ms: ${APP_KAFKA_OUTBOX_FIXED_DELAY_MS:5000}
+      max-retries: ${APP_KAFKA_OUTBOX_MAX_RETRIES:5}
+    retry:
+      max-attempts: ${APP_KAFKA_RETRY_MAX_ATTEMPTS:3}
 
 
 # Firebase (Push Notification)

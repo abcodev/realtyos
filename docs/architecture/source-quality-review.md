@@ -235,6 +235,35 @@
 - `src/main/java/realtyos/server/application/rag/domain/QueryTargetKind.java`
 - `src/test/java/realtyos/server/application/rag/domain/RealestateQueryParserTest.java`
 
+### 11. Kafka 기반 RAG 임베딩 비동기 처리
+
+기존 임베딩 생성은 API 요청 또는 스케줄러에서 동기적으로 실행됐다.
+
+문제:
+
+- 임베딩 생성은 오래 걸리고 OpenAI/Ollama 장애 영향을 받음
+- API 요청 중 DB 변경과 외부 메시지 발행을 함께 다루기 어려움
+- 실패한 임베딩 작업의 retry/DLQ 추적 구조가 없음
+
+수정:
+
+- `event_outbox` 테이블과 `OutboxEventService` 추가
+- `rag_embedding_saga` 테이블로 임베딩 작업 상태 추적
+- `/api/v1/rag/documents/embeddings/async` endpoint 추가
+- `KafkaOutboxPublisher`가 outbox event를 Kafka topic으로 발행
+- `RagEmbeddingKafkaConsumer`가 consumer group으로 임베딩 작업 처리
+- 실패 시 retry topic으로 재발행, 최대 횟수 초과 시 DLQ topic으로 이동
+
+관련 파일:
+
+- `src/main/java/realtyos/server/application/common/outbox/OutboxEventService.java`
+- `src/main/java/realtyos/server/application/common/outbox/OutboxRepository.java`
+- `src/main/java/realtyos/server/application/rag/application/RagEmbeddingAsyncService.java`
+- `src/main/java/realtyos/server/application/rag/application/RagEmbeddingSagaService.java`
+- `src/main/java/realtyos/server/application/rag/infrastructure/kafka/KafkaOutboxPublisher.java`
+- `src/main/java/realtyos/server/application/rag/infrastructure/kafka/RagEmbeddingKafkaConsumer.java`
+- `src/main/resources/db/migration/V16__create_event_outbox_and_rag_embedding_saga.sql`
+
 ## 아직 남아있는 아키텍처 이슈
 
 ### 1. 의사결정 서비스에 후보 검색 orchestration이 아직 남아 있음

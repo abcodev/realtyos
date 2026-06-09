@@ -91,4 +91,14 @@ class RagQueryRewritePolicyTest {
 
         assertThat(result.condition().region()).isEqualTo("마포");
     }
+
+    @Test
+    void infersConditionForPurchaseAvailabilityQuestion() {
+        RagQueryRewriteResult result = policy.rewrite("서울에서 4억 미만으로 살 수있는 10평대 아파트 있어", null);
+
+        assertThat(result.condition().region()).isEqualTo("서울");
+        assertThat(result.condition().maxPrice()).isEqualTo(40000L);
+        assertThat(result.condition().minArea()).isEqualTo(33.06);
+        assertThat(result.condition().maxArea()).isEqualTo(66.12);
+    }
 }

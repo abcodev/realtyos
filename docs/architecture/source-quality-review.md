@@ -208,20 +208,44 @@
 - `src/main/java/realtyos/server/application/rag/application/RagAnswerStreamingService.java`
 - `src/test/java/realtyos/server/application/rag/application/RagAnswerRouterTest.java`
 
+### 10. 자연어 질문 해석 parser 통합
+
+기존에는 질문 의도와 조건 추출이 `RagAnswerRouter`, `RagQueryRewritePolicy`, `RealestateDecisionService`에 나뉘어 있었다.
+
+문제:
+
+- 같은 질문을 route, 검색 조건, 의사결정 비교 대상 추출에서 다르게 해석할 수 있음
+- `살 수 있는`, `후보를 비교`, `단지명 vs 지역명` 같은 표현을 고칠 때 여러 파일을 동시에 수정해야 함
+- 자연어 회귀 테스트가 route/condition/decision 흐름별로 흩어짐
+
+수정:
+
+- `RealestateQueryParser` 추가
+- `ParsedRealestateQuery`로 intent, reason, condition, comparison target을 구조화
+- `RagAnswerRouter`는 parser의 intent만 route로 변환
+- `RagQueryRewritePolicy`는 parser의 condition을 검색 조건으로 사용
+- `RealestateDecisionService`는 parser의 comparison target을 후보 검색에 사용
+
+관련 파일:
+
+- `src/main/java/realtyos/server/application/rag/domain/RealestateQueryParser.java`
+- `src/main/java/realtyos/server/application/rag/domain/ParsedRealestateQuery.java`
+- `src/main/java/realtyos/server/application/rag/domain/QueryIntent.java`
+- `src/main/java/realtyos/server/application/rag/domain/QueryTarget.java`
+- `src/main/java/realtyos/server/application/rag/domain/QueryTargetKind.java`
+- `src/test/java/realtyos/server/application/rag/domain/RealestateQueryParserTest.java`
+
 ## 아직 남아있는 아키텍처 이슈
 
-### 1. 의사결정 서비스에 질문 파싱과 후보 검색이 아직 남아 있음
+### 1. 의사결정 서비스에 후보 검색 orchestration이 아직 남아 있음
 
 `RealestateDecisionService`가 현재 맡는 책임:
 
-- 의도 판별
-- 비교 대상 추출
 - 후보 검색 orchestration
 - 점수 적용
 
 권장 방향:
 
-- `DecisionQueryParser`
 - `DecisionCandidateFinder`
 
 처럼 역할을 나누면 테스트와 변경이 쉬워진다.
@@ -237,7 +261,6 @@
 
 ## 권장 다음 작업 순서
 
-1. `DecisionQueryParser` 분리
-2. `DecisionCandidateFinder` 분리
-3. RAG/Decision SQL fragment 중복 제거
-4. formatter/summary builder 단위 테스트 추가
+1. `DecisionCandidateFinder` 분리
+2. RAG/Decision SQL fragment 중복 제거
+3. formatter/summary builder 단위 테스트 추가

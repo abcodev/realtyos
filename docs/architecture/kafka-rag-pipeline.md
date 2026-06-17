@@ -93,6 +93,15 @@ DLQ 이벤트는 자동 복구 대상이 아니라 운영자가 원인을 확인
 
 이를 통해 API 요청 이후에도 작업이 처리 중인지, 완료됐는지, retry 중인지, DLQ로 이동했는지 추적할 수 있다.
 
+상태 조회 API:
+
+```text
+GET /api/v1/rag/documents/embeddings/jobs/{sagaId}
+GET /api/v1/rag/documents/embeddings/jobs
+```
+
+응답에는 상태, provider/model, attempt count, embedded/skipped/failed count, last error, 생성/수정/완료 시각이 포함된다.
+
 ## Configuration
 
 기본값은 Kafka 비활성화다. 기존 로컬 실행과 테스트가 Kafka broker 없이도 동작해야 하기 때문이다.

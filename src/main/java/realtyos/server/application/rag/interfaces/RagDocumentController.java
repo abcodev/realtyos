@@ -7,18 +7,24 @@ import realtyos.server.application.common.response.ApiResponse;
 import realtyos.server.application.rag.application.RagDocumentBuildService;
 import realtyos.server.application.rag.application.RagEmbeddingAsyncService;
 import realtyos.server.application.rag.application.RagEmbeddingBuildService;
+import realtyos.server.application.rag.application.RagEmbeddingSagaService;
 import realtyos.server.application.rag.application.RagIndexStatsService;
 import realtyos.server.application.rag.application.RagSyncService;
 import realtyos.server.application.rag.interfaces.dto.RagAsyncJobResponse;
 import realtyos.server.application.rag.interfaces.dto.RagDocumentBuildResponse;
 import realtyos.server.application.rag.interfaces.dto.RagEmbeddingBuildResponse;
+import realtyos.server.application.rag.interfaces.dto.RagEmbeddingJobStatusResponse;
 import realtyos.server.application.rag.interfaces.dto.RagIndexStatsResponse;
 import realtyos.server.application.rag.interfaces.dto.RagSyncResponse;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -29,6 +35,7 @@ public class RagDocumentController {
     private final RagDocumentBuildService buildService;
     private final RagEmbeddingBuildService embeddingBuildService;
     private final RagEmbeddingAsyncService embeddingAsyncService;
+    private final RagEmbeddingSagaService embeddingSagaService;
     private final RagSyncService syncService;
     private final RagIndexStatsService indexStatsService;
 
@@ -57,6 +64,23 @@ public class RagDocumentController {
             @RequestParam(required = false) String model) {
         return ApiResponse.success(RagAsyncJobResponse.from(
                 embeddingAsyncService.requestEmbeddingBuild(limit, provider, model)));
+    }
+
+    @GetMapping("/embeddings/jobs/{sagaId}")
+    @Operation(summary = "RAG 임베딩 작업 상태 조회", description = "Kafka 기반 비동기 임베딩 작업의 saga 상태를 조회합니다.")
+    public ApiResponse<RagEmbeddingJobStatusResponse> getEmbeddingJobStatus(
+            @PathVariable UUID sagaId) {
+        return ApiResponse.success(RagEmbeddingJobStatusResponse.from(
+                embeddingSagaService.getJobStatus(sagaId)));
+    }
+
+    @GetMapping("/embeddings/jobs")
+    @Operation(summary = "RAG 임베딩 작업 목록 조회", description = "최근 Kafka 기반 비동기 임베딩 작업 상태 목록을 조회합니다.")
+    public ApiResponse<List<RagEmbeddingJobStatusResponse>> getEmbeddingJobStatuses(
+            @RequestParam(defaultValue = "20") int limit) {
+        return ApiResponse.success(embeddingSagaService.findJobStatuses(limit).stream()
+                .map(RagEmbeddingJobStatusResponse::from)
+                .toList());
     }
 
     @PostMapping("/sync")

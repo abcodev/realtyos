@@ -222,6 +222,8 @@ user
 | POST | `/api/v1/rag/ask` | 자연어 질문 답변 |
 | POST | `/api/v1/rag/ask/stream` | SSE 기반 자연어 질문 답변 |
 | POST | `/api/v1/rag/documents/embeddings/async` | Kafka 기반 임베딩 작업 요청 |
+| GET | `/api/v1/rag/documents/embeddings/jobs/{sagaId}` | Kafka 임베딩 작업 상태 조회 |
+| GET | `/api/v1/rag/documents/embeddings/jobs` | Kafka 임베딩 작업 목록 조회 |
 | GET | `/api/v1/rag/documents/stats` | RAG 인덱스 상태 조회 |
 | GET | `/api/v1/rag/memory/me` | 사용자 AI 메모리 조회 |
 | GET | `/api/v1/rag/memory/me/events` | 사용자 질문/답변 히스토리 조회 |

@@ -4,8 +4,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import realtyos.server.application.common.exception.BusinessException;
+import realtyos.server.application.common.exception.ErrorCode;
 import realtyos.server.application.rag.domain.RagEmbeddingBuildResult;
+import realtyos.server.application.rag.domain.RagEmbeddingJobStatus;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -100,10 +106,74 @@ public class RagEmbeddingSagaService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public RagEmbeddingJobStatus getJobStatus(UUID sagaId) {
+        List<RagEmbeddingJobStatus> results = jdbcTemplate.query("""
+                        SELECT id, status, provider, model, embedding_limit, attempt_count,
+                               embedded_count, skipped_count, failed_count, last_error,
+                               created_at, updated_at, completed_at
+                        FROM rag_embedding_saga
+                        WHERE id = ?
+                        """,
+                (rs, rowNum) -> new RagEmbeddingJobStatus(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("status"),
+                        rs.getString("provider"),
+                        rs.getString("model"),
+                        rs.getInt("embedding_limit"),
+                        rs.getInt("attempt_count"),
+                        rs.getInt("embedded_count"),
+                        rs.getInt("skipped_count"),
+                        rs.getInt("failed_count"),
+                        rs.getString("last_error"),
+                        toLocalDateTime(rs.getTimestamp("created_at")),
+                        toLocalDateTime(rs.getTimestamp("updated_at")),
+                        toLocalDateTime(rs.getTimestamp("completed_at"))
+                ),
+                sagaId
+        );
+        return results.stream()
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "임베딩 작업을 찾을 수 없습니다: " + sagaId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<RagEmbeddingJobStatus> findJobStatuses(int limit) {
+        return jdbcTemplate.query("""
+                        SELECT id, status, provider, model, embedding_limit, attempt_count,
+                               embedded_count, skipped_count, failed_count, last_error,
+                               created_at, updated_at, completed_at
+                        FROM rag_embedding_saga
+                        ORDER BY created_at DESC
+                        LIMIT ?
+                        """,
+                (rs, rowNum) -> new RagEmbeddingJobStatus(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("status"),
+                        rs.getString("provider"),
+                        rs.getString("model"),
+                        rs.getInt("embedding_limit"),
+                        rs.getInt("attempt_count"),
+                        rs.getInt("embedded_count"),
+                        rs.getInt("skipped_count"),
+                        rs.getInt("failed_count"),
+                        rs.getString("last_error"),
+                        toLocalDateTime(rs.getTimestamp("created_at")),
+                        toLocalDateTime(rs.getTimestamp("updated_at")),
+                        toLocalDateTime(rs.getTimestamp("completed_at"))
+                ),
+                Math.max(1, Math.min(100, limit))
+        );
+    }
+
     private String truncate(String text) {
         if (text == null) {
             return null;
         }
         return text.length() <= 2000 ? text : text.substring(0, 2000);
+    }
+
+    private LocalDateTime toLocalDateTime(Timestamp timestamp) {
+        return timestamp == null ? null : timestamp.toLocalDateTime();
     }
 }

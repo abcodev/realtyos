@@ -250,6 +250,7 @@
 - `event_outbox` 테이블과 `OutboxEventService` 추가
 - `rag_embedding_saga` 테이블로 임베딩 작업 상태 추적
 - `/api/v1/rag/documents/embeddings/async` endpoint 추가
+- Kafka 임베딩 saga 상태 단건/목록 조회 endpoint 추가
 - `KafkaOutboxPublisher`가 outbox event를 Kafka topic으로 발행
 - `RagEmbeddingKafkaConsumer`가 consumer group으로 임베딩 작업 처리
 - 실패 시 retry topic으로 재발행, 최대 횟수 초과 시 DLQ topic으로 이동
@@ -260,6 +261,8 @@
 - `src/main/java/realtyos/server/application/common/outbox/OutboxRepository.java`
 - `src/main/java/realtyos/server/application/rag/application/RagEmbeddingAsyncService.java`
 - `src/main/java/realtyos/server/application/rag/application/RagEmbeddingSagaService.java`
+- `src/main/java/realtyos/server/application/rag/domain/RagEmbeddingJobStatus.java`
+- `src/main/java/realtyos/server/application/rag/interfaces/dto/RagEmbeddingJobStatusResponse.java`
 - `src/main/java/realtyos/server/application/rag/infrastructure/kafka/KafkaOutboxPublisher.java`
 - `src/main/java/realtyos/server/application/rag/infrastructure/kafka/RagEmbeddingKafkaConsumer.java`
 - `src/main/resources/db/migration/V16__create_event_outbox_and_rag_embedding_saga.sql`

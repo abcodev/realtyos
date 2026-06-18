@@ -7,6 +7,7 @@ import realtyos.server.application.realestate.infrastructure.jpa.mapper.DealsMap
 import realtyos.server.application.realestate.infrastructure.jpa.repository.DealsJpaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,10 +26,10 @@ public class DealsRepositoryJpaAdaptor implements DealsRepository {
 
     @Transactional
     @Override
-    public void saveAll(List<Deals> deals) {
+    public List<Deals> saveAll(List<Deals> deals) {
 
         if (deals.isEmpty()) {
-            return;
+            return List.of();
         }
 
         Map<String, List<Deals>> groupedDeals = deals.stream()
@@ -79,7 +80,27 @@ public class DealsRepositoryJpaAdaptor implements DealsRepository {
 
         log.info("Upsert summary - New: {}, Updated: {}", newCount, updatedCount);
 
-        jpaRepository.saveAll(entitiesToSave);
+        return jpaRepository.saveAll(entitiesToSave).stream()
+                .map(mapper::mapToDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Deals> findSearchIndexBatch(Integer year, Long afterId, int batchSize) {
+        PageRequest pageRequest = PageRequest.of(0, Math.max(1, Math.min(10_000, batchSize)));
+        return jpaRepository.findSearchIndexBatch(year, afterId == null ? 0L : afterId, pageRequest).stream()
+                .map(mapper::mapToDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Deals> findByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return jpaRepository.findAllById(ids).stream()
+                .map(mapper::mapToDomain)
+                .toList();
     }
 
     private record DealKey(

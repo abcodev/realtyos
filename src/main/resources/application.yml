@@ -129,6 +129,16 @@ rag:
     embedding-model: ${RAG_SYNC_EMBEDDING_MODEL:text-embedding-3-small}
 
 app:
+  elasticsearch:
+    enabled: ${APP_ELASTICSEARCH_ENABLED:true}
+    base-url: ${APP_ELASTICSEARCH_BASE_URL:http://localhost:19200}
+    deals-index: ${APP_ELASTICSEARCH_DEALS_INDEX:real_estate_deals}
+    bulk-batch-size: ${APP_ELASTICSEARCH_BULK_BATCH_SIZE:1000}
+    outbox:
+      enabled: ${APP_ELASTICSEARCH_OUTBOX_ENABLED:true}
+      poll-limit: ${APP_ELASTICSEARCH_OUTBOX_POLL_LIMIT:1000}
+      fixed-delay-ms: ${APP_ELASTICSEARCH_OUTBOX_FIXED_DELAY_MS:5000}
+      max-retries: ${APP_ELASTICSEARCH_OUTBOX_MAX_RETRIES:5}
   kafka:
     enabled: ${APP_KAFKA_ENABLED:false}
     consumer-group: ${KAFKA_CONSUMER_GROUP:realtyos-rag-workers}

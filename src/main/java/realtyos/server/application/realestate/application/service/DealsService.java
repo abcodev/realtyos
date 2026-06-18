@@ -18,6 +18,7 @@ public class DealsService {
 
     private final DataFetchPort fetchPort;
     private final DealsRepository repository;
+    private final DealsSearchIndexQueue searchIndexQueue;
     private final BgdCodeRepository bgdCodeRepository;
 
     public void fetchAndSaveDeals() {
@@ -79,7 +80,11 @@ public class DealsService {
                                     .build())
                             .toList();
 
-                    repository.saveAll(detailsWithSido);
+                    List<Deals> savedDeals = repository.saveAll(detailsWithSido);
+                    searchIndexQueue.enqueueAll(savedDeals.stream()
+                            .map(Deals::id)
+                            .filter(id -> id != null)
+                            .toList());
                 } else {
                     log.warn("실거래 상세 데이터 없음 - 법정동 코드: {}, 기준년월: {}", bgdCode, dealYmd);
                 }

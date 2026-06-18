@@ -16,6 +16,7 @@ import realtyos.server.application.realestate.domain.DealsSearchQueryRepository;
 import realtyos.server.application.realestate.domain.DealsSearchResult;
 import realtyos.server.application.realestate.domain.RegionResolution;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -59,19 +60,33 @@ public class DealsElasticsearchRepository implements DealsSearchIndexer, DealsSe
     }
 
     private void bulkIndex(List<Deals> deals) throws Exception {
-            StringBuilder bulk = new StringBuilder();
-            for (Deals deal : deals) {
-                DealsElasticsearchDocument document = DealsElasticsearchDocument.from(deal);
-                bulk.append(objectMapper.writeValueAsString(Map.of("index", Map.of("_index", indexName, "_id", document.id()))))
-                        .append('\n');
-                bulk.append(objectMapper.writeValueAsString(document)).append('\n');
+        StringBuilder bulk = new StringBuilder();
+        for (Deals deal : deals) {
+            DealsElasticsearchDocument document = DealsElasticsearchDocument.from(deal);
+            bulk.append(objectMapper.writeValueAsString(Map.of("index", Map.of("_index", indexName, "_id", document.id()))))
+                    .append('\n');
+            bulk.append(objectMapper.writeValueAsString(document)).append('\n');
+        }
+        String responseBody = restClient.post()
+                .uri(baseUrl + "/_bulk")
+                .contentType(MediaType.parseMediaType("application/x-ndjson"))
+                .body(bulk.toString().getBytes(StandardCharsets.UTF_8))
+                .retrieve()
+                .body(String.class);
+        JsonNode response = objectMapper.readTree(responseBody);
+        if (response != null && response.path("errors").asBoolean(false)) {
+            throw new IllegalStateException("Elasticsearch bulk item failure: " + firstBulkError(response));
+        }
+    }
+
+    private String firstBulkError(JsonNode response) {
+        for (JsonNode item : response.path("items")) {
+            JsonNode error = item.path("index").path("error");
+            if (!error.isMissingNode()) {
+                return error.toString();
             }
-            restClient.post()
-                    .uri(baseUrl + "/_bulk")
-                    .contentType(MediaType.parseMediaType("application/x-ndjson"))
-                    .body(bulk.toString())
-                    .retrieve()
-                    .toBodilessEntity();
+        }
+        return response.toString();
     }
 
     @Override
@@ -85,14 +100,15 @@ public class DealsElasticsearchRepository implements DealsSearchIndexer, DealsSe
                     "query", Map.of("bool", Map.of("filter", filters(condition, regionResolution))),
                     "sort", List.of(Map.of("dealDate", Map.of("order", "desc", "missing", "_last")))
             );
-            JsonNode response = restClient.post()
+            String responseBody = restClient.post()
                     .uri(baseUrl + "/" + indexName + "/_search")
                     .body(body)
                     .retrieve()
-                    .body(JsonNode.class);
-            if (response == null) {
+                    .body(String.class);
+            if (responseBody == null || responseBody.isBlank()) {
                 return List.of();
             }
+            JsonNode response = objectMapper.readTree(responseBody);
             List<DealsSearchResult> results = new ArrayList<>();
             for (JsonNode hit : response.path("hits").path("hits")) {
                 JsonNode source = hit.path("_source");
@@ -117,14 +133,14 @@ public class DealsElasticsearchRepository implements DealsSearchIndexer, DealsSe
                 case DONG -> filters.add(Map.of("match", Map.of("umdName", regionResolution.dongName())));
                 case KEYWORD -> filters.add(Map.of("multi_match", Map.of(
                         "query", regionResolution.keyword(),
-                        "fields", List.of("umdName", "aptName")
+                        "fields", List.of("umdName", "aptName", "aptName.ngram")
                 )));
                 case NONE -> {
                 }
             }
         }
         if (hasText(condition.apartmentName())) {
-            filters.add(Map.of("match", Map.of("aptName", condition.apartmentName())));
+            filters.add(apartmentNameQuery(condition.apartmentName()));
         }
         if (condition.year() != null) {
             filters.add(Map.of("term", Map.of("dealYear", condition.year())));
@@ -135,6 +151,13 @@ public class DealsElasticsearchRepository implements DealsSearchIndexer, DealsSe
         addRange(filters, "dealAmountValue", condition.minPrice(), condition.maxPrice());
         addRange(filters, "exclusiveUseAreaValue", condition.minArea(), condition.maxArea());
         return filters;
+    }
+
+    private Map<String, Object> apartmentNameQuery(String apartmentName) {
+        return Map.of("multi_match", Map.of(
+                "query", apartmentName,
+                "fields", List.of("aptName^2", "aptName.ngram")
+        ));
     }
 
     private void addRange(List<Map<String, Object>> filters, String field, Number min, Number max) {
@@ -169,13 +192,42 @@ public class DealsElasticsearchRepository implements DealsSearchIndexer, DealsSe
         Map<String, Object> settings = Map.of(
                 "number_of_shards", 1,
                 "number_of_replicas", 0,
-                "refresh_interval", "30s"
+                "refresh_interval", "30s",
+                "index.max_ngram_diff", 28,
+                "analysis", Map.of(
+                        "tokenizer", Map.of(
+                                "apt_name_ngram_tokenizer", Map.of(
+                                        "type", "ngram",
+                                        "min_gram", 2,
+                                        "max_gram", 30,
+                                        "token_chars", List.of("letter", "digit")
+                                )
+                        ),
+                        "analyzer", Map.of(
+                                "apt_name_ngram_analyzer", Map.of(
+                                        "type", "custom",
+                                        "tokenizer", "apt_name_ngram_tokenizer",
+                                        "filter", List.of("lowercase")
+                                )
+                        )
+                )
         );
         Map<String, Object> properties = Map.ofEntries(
                 Map.entry("id", Map.of("type", "keyword")),
                 Map.entry("sggCode", Map.of("type", "keyword")),
                 Map.entry("umdName", Map.of("type", "text", "analyzer", "standard", "fields", Map.of("keyword", Map.of("type", "keyword")))),
-                Map.entry("aptName", Map.of("type", "text", "analyzer", "standard", "fields", Map.of("keyword", Map.of("type", "keyword")))),
+                Map.entry("aptName", Map.of(
+                        "type", "text",
+                        "analyzer", "standard",
+                        "fields", Map.of(
+                                "keyword", Map.of("type", "keyword"),
+                                "ngram", Map.of(
+                                        "type", "text",
+                                        "analyzer", "apt_name_ngram_analyzer",
+                                        "search_analyzer", "standard"
+                                )
+                        )
+                )),
                 Map.entry("jibun", Map.of("type", "keyword")),
                 Map.entry("dealYear", Map.of("type", "integer")),
                 Map.entry("dealMonth", Map.of("type", "integer")),

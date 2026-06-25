@@ -39,4 +39,22 @@ class RagAnswerRouterTest {
         assertThat(route.type()).isEqualTo(RagAnswerRouteType.SEARCH);
         assertThat(route.usesDecisionEngine()).isFalse();
     }
+
+    @Test
+    void routesPortfolioDemoQuestions() {
+        assertThat(router.route("개포동 시세 어때").type()).isEqualTo(RagAnswerRouteType.MARKET_PRICE);
+        assertThat(router.route("대치동과 역삼동 시세 비교해줘").type()).isEqualTo(RagAnswerRouteType.COMPARISON);
+        assertThat(router.route("잠실엘스랑 대치동 비교해줘").type()).isEqualTo(RagAnswerRouteType.COMPARISON);
+        assertThat(router.route("마포에서 갈아타기 후보 추천해줘").type()).isEqualTo(RagAnswerRouteType.RECOMMENDATION);
+        assertThat(router.route("래미안대치팰리스 최근 거래 알려줘").type()).isEqualTo(RagAnswerRouteType.SEARCH);
+    }
+
+    @Test
+    void routesPurchaseAvailabilityQuestionToRecommendation() {
+        RagAnswerRoute route = router.route("서울에서 4억 미만으로 살 수있는 10평대 아파트 있어");
+
+        assertThat(route.type()).isEqualTo(RagAnswerRouteType.RECOMMENDATION);
+        assertThat(route.reason()).isEqualTo("purchase_availability_intent");
+        assertThat(route.usesDecisionEngine()).isTrue();
+    }
 }

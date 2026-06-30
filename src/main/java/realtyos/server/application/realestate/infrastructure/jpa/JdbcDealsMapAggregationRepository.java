@@ -62,6 +62,25 @@ public class JdbcDealsMapAggregationRepository implements DealsMapAggregationRep
             Map.entry("제주도", "50"),
             Map.entry("제주특별자치도", "50")
     );
+    private static final Map<String, String> SIDO_PREFIX_NAMES = Map.ofEntries(
+            Map.entry("11", "서울특별시"),
+            Map.entry("26", "부산광역시"),
+            Map.entry("27", "대구광역시"),
+            Map.entry("28", "인천광역시"),
+            Map.entry("29", "광주광역시"),
+            Map.entry("30", "대전광역시"),
+            Map.entry("31", "울산광역시"),
+            Map.entry("36", "세종특별자치시"),
+            Map.entry("41", "경기도"),
+            Map.entry("51", "강원특별자치도"),
+            Map.entry("43", "충청북도"),
+            Map.entry("44", "충청남도"),
+            Map.entry("52", "전북특별자치도"),
+            Map.entry("46", "전라남도"),
+            Map.entry("47", "경상북도"),
+            Map.entry("48", "경상남도"),
+            Map.entry("50", "제주특별자치도")
+    );
 
     @Override
     public List<DealsMapAggregation> aggregate(DealsMapAggregationCondition condition, RegionResolution regionResolution) {
@@ -153,6 +172,49 @@ public class JdbcDealsMapAggregationRepository implements DealsMapAggregationRep
         ), params.toArray());
     }
 
+    @Override
+    public String resolveRegionByCenter(double latitude, double longitude, DealsMapGroupLevel groupLevel) {
+        if (groupLevel == DealsMapGroupLevel.GU) {
+            String sidoName = resolveSidoByCoordinate(latitude, longitude);
+            if (sidoName != null) {
+                return sidoName;
+            }
+        }
+
+        String sql = """
+                SELECT
+                    s.full_nm AS full_name,
+                    c.region_key AS region_key
+                FROM region_centers c
+                LEFT JOIN real_estate_sgg_code s
+                    ON s.sgg_cd = CASE
+                        WHEN c.region_level = 'GU' THEN c.region_key
+                        ELSE SPLIT_PART(c.region_key, ':', 1)
+                    END
+                WHERE c.latitude IS NOT NULL
+                    AND c.longitude IS NOT NULL
+                    AND c.region_level = 'GU'
+                ORDER BY
+                    POWER(c.latitude - ?, 2)
+                    + POWER((c.longitude - ?) * COS(RADIANS(?)), 2)
+                LIMIT 1
+                """;
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, latitude, longitude, latitude);
+        if (rows.isEmpty()) {
+            return null;
+        }
+        Map<String, Object> row = rows.get(0);
+        String fullName = row.get("full_name") == null ? null : String.valueOf(row.get("full_name"));
+        if (groupLevel != DealsMapGroupLevel.GU && fullName != null && !fullName.isBlank()) {
+            return fullName;
+        }
+        String regionKey = row.get("region_key") == null ? null : String.valueOf(row.get("region_key"));
+        if (regionKey == null || regionKey.length() < 2) {
+            return null;
+        }
+        return SIDO_PREFIX_NAMES.get(regionKey.substring(0, 2));
+    }
+
     private void appendRegionFilter(StringBuilder where, List<Object> params, RegionResolution regionResolution) {
         if (regionResolution == null || !regionResolution.hasFilter()) {
             return;
@@ -188,6 +250,32 @@ public class JdbcDealsMapAggregationRepository implements DealsMapAggregationRep
             where.append(" AND d.sgg_code LIKE ?");
             params.add(prefix + "%");
         }
+    }
+
+    private String resolveSidoByCoordinate(double latitude, double longitude) {
+        if (inside(latitude, longitude, 37.42, 37.72, 126.76, 127.19)) return "서울특별시";
+        if (inside(latitude, longitude, 37.00, 37.98, 124.60, 126.90)) return "인천광역시";
+        if (inside(latitude, longitude, 36.75, 38.35, 126.35, 127.95)) return "경기도";
+        if (inside(latitude, longitude, 35.00, 35.45, 128.75, 129.35)) return "부산광역시";
+        if (inside(latitude, longitude, 35.75, 36.05, 128.35, 128.80)) return "대구광역시";
+        if (inside(latitude, longitude, 37.25, 37.65, 126.35, 126.85)) return "인천광역시";
+        if (inside(latitude, longitude, 35.05, 35.30, 126.65, 127.05)) return "광주광역시";
+        if (inside(latitude, longitude, 36.15, 36.55, 127.20, 127.55)) return "대전광역시";
+        if (inside(latitude, longitude, 35.35, 35.75, 128.95, 129.50)) return "울산광역시";
+        if (inside(latitude, longitude, 36.35, 36.75, 127.05, 127.45)) return "세종특별자치시";
+        if (inside(latitude, longitude, 37.00, 38.65, 127.05, 129.35)) return "강원특별자치도";
+        if (inside(latitude, longitude, 36.45, 37.35, 127.25, 128.75)) return "충청북도";
+        if (inside(latitude, longitude, 35.95, 37.05, 126.05, 127.65)) return "충청남도";
+        if (inside(latitude, longitude, 35.30, 36.20, 126.35, 127.95)) return "전북특별자치도";
+        if (inside(latitude, longitude, 33.90, 35.45, 125.00, 127.90)) return "전라남도";
+        if (inside(latitude, longitude, 35.55, 37.60, 128.00, 130.00)) return "경상북도";
+        if (inside(latitude, longitude, 34.55, 35.95, 127.55, 129.60)) return "경상남도";
+        if (inside(latitude, longitude, 33.05, 33.65, 126.05, 126.95)) return "제주특별자치도";
+        return null;
+    }
+
+    private boolean inside(double latitude, double longitude, double minLat, double maxLat, double minLng, double maxLng) {
+        return latitude >= minLat && latitude <= maxLat && longitude >= minLng && longitude <= maxLng;
     }
 
     private void appendConditionFilters(StringBuilder where, List<Object> params, DealsMapAggregationCondition condition) {

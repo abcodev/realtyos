@@ -9,7 +9,9 @@ public record DealsMapAggregationCondition(
         Long maxPrice,
         Double minArea,
         Double maxArea,
-        Integer limit
+        Integer limit,
+        Double centerLatitude,
+        Double centerLongitude
 ) {
 
     public int normalizedLimit() {
@@ -21,5 +23,13 @@ public record DealsMapAggregationCondition(
 
     public DealsMapGroupLevel normalizedGroupLevel() {
         return groupLevel == null ? DealsMapGroupLevel.GU : groupLevel;
+    }
+
+    public boolean hasCenter() {
+        return centerLatitude != null && centerLongitude != null;
+    }
+
+    public DealsMapAggregationCondition withRegion(String nextRegion) {
+        return new DealsMapAggregationCondition(nextRegion, groupLevel, year, month, minPrice, maxPrice, minArea, maxArea, limit, centerLatitude, centerLongitude);
     }
 }

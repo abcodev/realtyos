@@ -5,4 +5,6 @@ import java.util.List;
 public interface DealsMapAggregationRepository {
 
     List<DealsMapAggregation> aggregate(DealsMapAggregationCondition condition, RegionResolution regionResolution);
+
+    String resolveRegionByCenter(double latitude, double longitude, DealsMapGroupLevel groupLevel);
 }

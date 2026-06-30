@@ -29,17 +29,36 @@ public class DealsMapAggregationService {
     };
 
     public List<DealsMapAggregation> aggregate(DealsMapAggregationCondition condition) {
-        String cacheKey = cacheKey(condition);
+        DealsMapAggregationCondition effectiveCondition = resolveRegionFromCenter(condition);
+        String cacheKey = cacheKey(effectiveCondition);
         List<DealsMapAggregation> cached = readCache(cacheKey);
         if (cached != null) {
             return cached;
         }
-        RegionResolution regionResolution = condition.region() == null || condition.region().isBlank()
+        RegionResolution regionResolution = effectiveCondition.region() == null || effectiveCondition.region().isBlank()
                 ? RegionResolution.empty(null)
-                : regionResolver.resolve(condition.region());
-        List<DealsMapAggregation> result = aggregationRepository.aggregate(condition, regionResolution);
+                : regionResolver.resolve(effectiveCondition.region());
+        List<DealsMapAggregation> result = aggregationRepository.aggregate(effectiveCondition, regionResolution);
         writeCache(cacheKey, result);
         return result;
+    }
+
+    private DealsMapAggregationCondition resolveRegionFromCenter(DealsMapAggregationCondition condition) {
+        if (condition.region() != null && !condition.region().isBlank()) {
+            return condition;
+        }
+        if (!condition.hasCenter()) {
+            return condition;
+        }
+        String region = aggregationRepository.resolveRegionByCenter(
+                condition.centerLatitude(),
+                condition.centerLongitude(),
+                condition.normalizedGroupLevel()
+        );
+        if (region == null || region.isBlank()) {
+            return condition;
+        }
+        return condition.withRegion(region);
     }
 
     private String cacheKey(DealsMapAggregationCondition condition) {
@@ -52,7 +71,9 @@ public class DealsMapAggregationService {
                 + safe(condition.maxPrice()) + ":"
                 + safe(condition.minArea()) + ":"
                 + safe(condition.maxArea()) + ":"
-                + condition.normalizedLimit();
+                + condition.normalizedLimit() + ":"
+                + safe(condition.centerLatitude()) + ":"
+                + safe(condition.centerLongitude());
     }
 
     private List<DealsMapAggregation> readCache(String key) {

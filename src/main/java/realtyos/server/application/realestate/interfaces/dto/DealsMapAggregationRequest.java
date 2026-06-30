@@ -16,10 +16,12 @@ public record DealsMapAggregationRequest(
         Long maxPrice,
         Double minArea,
         Double maxArea,
-        @Min(1) @Max(500) Integer limit
+        @Min(1) @Max(500) Integer limit,
+        Double centerLatitude,
+        Double centerLongitude
 ) {
 
     public DealsMapAggregationCondition toCondition() {
-        return new DealsMapAggregationCondition(region, groupLevel, year, month, minPrice, maxPrice, minArea, maxArea, limit);
+        return new DealsMapAggregationCondition(region, groupLevel, year, month, minPrice, maxPrice, minArea, maxArea, limit, centerLatitude, centerLongitude);
     }
 }

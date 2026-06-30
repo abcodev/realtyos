@@ -1,6 +1,7 @@
 package realtyos.server.application.realestate.infrastructure.client;
 
 import realtyos.server.application.realestate.infrastructure.client.dto.DealsApiResponse;
+import realtyos.server.application.realestate.infrastructure.client.dto.ApartmentComplexApiResponse;
 import realtyos.server.application.realestate.infrastructure.client.dto.AptPblancApiResponse;
 import realtyos.server.application.realestate.infrastructure.client.dto.RentPblancApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,9 @@ public class RealestateExternalApiClient {
 
         @Value("${external.api.realestate.pblanc-base-url}")
         private String pblancBaseUrl;
+
+        @Value("${external.api.realestate.apt-list-base-url}")
+        private String aptListBaseUrl;
 
 //        public DealsApiResponse fetchDeals(String lawdCd, String dealYmd, int pageNo, int numOfRows) {
 //                RestClient restClient = restClientBuilder.build();
@@ -109,5 +113,26 @@ public class RealestateExternalApiClient {
                                 .accept(MediaType.APPLICATION_JSON)
                                 .retrieve()
                                 .body(RentPblancApiResponse.class);
+        }
+
+        public ApartmentComplexApiResponse fetchTotalAptList(int pageNo, int numOfRows) {
+                RestClient restClient = restClientBuilder.build();
+
+                URI uri = UriComponentsBuilder
+                                .fromUriString(aptListBaseUrl + "/AptListService3/getTotalAptList3")
+                                .queryParam("serviceKey", serviceKey)
+                                .queryParam("pageNo", pageNo)
+                                .queryParam("numOfRows", numOfRows)
+                                .queryParam("_type", "json")
+                                .build()
+                                .toUri();
+
+                log.info("Fetching total apartment list from: {}", uri);
+
+                return restClient.get()
+                                .uri(uri)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .retrieve()
+                                .body(ApartmentComplexApiResponse.class);
         }
 }

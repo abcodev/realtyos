@@ -9,4 +9,6 @@ public interface DataFetchPort {
     List<AptPblanc> fetchAptLttotPblancDetail(int page, int perPage);
 
     List<RentPblanc> fetchPblPvtRentLttotPblancDetail(int page, int perPage);
+
+    ApartmentComplexFetchResult fetchApartmentComplexes(int pageNo, int numOfRows, java.util.function.Consumer<List<ApartmentComplex>> pageConsumer);
 }

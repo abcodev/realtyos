@@ -156,6 +156,15 @@ app:
     retry:
       max-attempts: ${APP_KAFKA_RETRY_MAX_ATTEMPTS:3}
 
+external:
+  api:
+    realestate:
+      service-key: ${REALESTATE_SERVICE_KEY:}
+      deals-base-url: ${REALESTATE_DEALS_BASE_URL:http://apis.data.go.kr/1613000}
+      apt-list-base-url: ${REALESTATE_APT_LIST_BASE_URL:https://apis.data.go.kr/1613000}
+      pblanc-base-url: ${REALESTATE_PBLANC_BASE_URL:https://api.odcloud.kr/api/ApplyhomeInfoDetailSvc/v1}
+      vworld-service-key: ${VWORLD_SERVICE_KEY:}
+
 
 # Firebase (Push Notification)
 firebase:

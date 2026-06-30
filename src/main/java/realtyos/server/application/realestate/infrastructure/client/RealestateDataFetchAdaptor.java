@@ -1,10 +1,13 @@
 package realtyos.server.application.realestate.infrastructure.client;
 
 import realtyos.server.application.realestate.domain.AptPblanc;
+import realtyos.server.application.realestate.domain.ApartmentComplex;
+import realtyos.server.application.realestate.domain.ApartmentComplexFetchResult;
 import realtyos.server.application.realestate.domain.BgdCodeRepository;
 import realtyos.server.application.realestate.domain.Deals;
 import realtyos.server.application.realestate.domain.RentPblanc;
 import realtyos.server.application.realestate.domain.DataFetchPort;
+import realtyos.server.application.realestate.infrastructure.client.dto.ApartmentComplexApiResponse;
 import realtyos.server.application.realestate.infrastructure.client.dto.AptPblancApiResponse;
 import realtyos.server.application.realestate.infrastructure.client.dto.RentPblancApiResponse;
 import realtyos.server.application.realestate.infrastructure.client.dto.DealsApiResponse;
@@ -17,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 @Slf4j
 @Component
@@ -204,6 +208,84 @@ public class RealestateDataFetchAdaptor implements DataFetchPort {
             case "제주" -> "제주특별자치도";
             default -> shortName;
         };
+    }
+
+    @Override
+    public ApartmentComplexFetchResult fetchApartmentComplexes(
+            int pageNo,
+            int numOfRows,
+            Consumer<List<ApartmentComplex>> pageConsumer
+    ) {
+        int currentPage = Math.max(pageNo, 1);
+        int rowCount = Math.max(numOfRows, 1);
+        int totalCount = 0;
+        int fetchedCount = 0;
+
+        while (true) {
+            ApartmentComplexApiResponse response = apiClient.fetchTotalAptList(currentPage, rowCount);
+
+            if (response == null || response.body() == null || response.body().itemList().isEmpty()) {
+                log.warn("No data found or invalid response for total apartment list - pageNo: {}, numOfRows: {}",
+                        currentPage, rowCount);
+                break;
+            }
+
+            List<ApartmentComplex> complexes = response.body().itemList().stream()
+                    .map(this::mapToApartmentComplexDomain)
+                    .toList();
+            pageConsumer.accept(complexes);
+
+            fetchedCount += complexes.size();
+            totalCount = parsePositiveInt(response.body().getTotalCount(), fetchedCount);
+
+            log.info("Fetched apartment complex page {}/{} (page items: {}, total items: {})",
+                    currentPage, (int) Math.ceil((double) totalCount / rowCount), complexes.size(), totalCount);
+
+            if (currentPage * rowCount >= totalCount) {
+                break;
+            }
+
+            currentPage++;
+        }
+
+        return ApartmentComplexFetchResult.builder()
+                .pageNo(pageNo)
+                .numOfRows(rowCount)
+                .totalCount(totalCount)
+                .fetchedCount(fetchedCount)
+                .build();
+    }
+
+    private ApartmentComplex mapToApartmentComplexDomain(ApartmentComplexApiResponse.Item item) {
+        return ApartmentComplex.builder()
+                .kaptCode(item.getKaptCode())
+                .kaptName(item.getKaptName())
+                .as1(item.getAs1())
+                .as2(item.getAs2())
+                .as3(item.getAs3())
+                .as4(item.getAs4())
+                .bjdCode(item.getBjdCode())
+                .fullAddress(joinAddress(item.getAs1(), item.getAs2(), item.getAs3(), item.getAs4()))
+                .build();
+    }
+
+    private String joinAddress(String... parts) {
+        return java.util.Arrays.stream(parts)
+                .filter(part -> part != null && !part.isBlank())
+                .map(String::trim)
+                .collect(java.util.stream.Collectors.joining(" "));
+    }
+
+    private int parsePositiveInt(String value, int fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Math.max(Integer.parseInt(value.trim()), 0);
+        } catch (NumberFormatException e) {
+            log.warn("숫자 파싱 실패 '{}', fallback: {}", value, fallback);
+            return fallback;
+        }
     }
 
     @Override

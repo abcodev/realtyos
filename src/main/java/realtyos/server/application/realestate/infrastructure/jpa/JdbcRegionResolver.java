@@ -21,6 +21,9 @@ public class JdbcRegionResolver implements RegionResolver {
         }
 
         String normalized = region.trim();
+        if (isSidoLevelRegion(normalized)) {
+            return RegionResolution.empty(normalized);
+        }
         if (isDongLevelRegion(normalized)) {
             return RegionResolution.dong(normalized, normalized);
         }
@@ -44,5 +47,16 @@ public class JdbcRegionResolver implements RegionResolver {
 
     private boolean isDongLevelRegion(String value) {
         return value.endsWith("동") || value.endsWith("읍") || value.endsWith("면") || value.endsWith("리");
+    }
+
+    private boolean isSidoLevelRegion(String value) {
+        return value.equals("서울")
+                || value.equals("서울시")
+                || value.equals("서울특별시")
+                || value.endsWith("광역시")
+                || value.endsWith("특별시")
+                || value.endsWith("특별자치시")
+                || value.endsWith("특별자치도")
+                || value.endsWith("도");
     }
 }

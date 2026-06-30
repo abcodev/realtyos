@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 import realtyos.server.application.common.entity.BaseEntity;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Builder
@@ -71,4 +72,11 @@ public class ApartmentComplexBasisInfoJpaEntity extends BaseEntity {
     private Integer ktownFlrNo;
     private Integer kaptBaseFloor;
     private Integer kaptdEcntp;
+
+    @Column(nullable = false)
+    private Boolean active;
+
+    private LocalDateTime lastSyncedAt;
+
+    private LocalDateTime deletedAt;
 }

@@ -8,6 +8,7 @@ public record ApartmentComplexSyncResult(
         int requestedNumOfRows,
         int totalCount,
         int fetchedCount,
-        int savedCount
+        int upsertedCount,
+        int deactivatedCount
 ) {
 }

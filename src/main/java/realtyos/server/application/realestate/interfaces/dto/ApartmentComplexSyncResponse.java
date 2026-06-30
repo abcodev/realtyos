@@ -9,7 +9,8 @@ public record ApartmentComplexSyncResponse(
         int requestedNumOfRows,
         int totalCount,
         int fetchedCount,
-        int savedCount
+        int upsertedCount,
+        int deactivatedCount
 ) {
 
     public static ApartmentComplexSyncResponse from(ApartmentComplexSyncResult result) {
@@ -18,7 +19,8 @@ public record ApartmentComplexSyncResponse(
                 result.requestedNumOfRows(),
                 result.totalCount(),
                 result.fetchedCount(),
-                result.savedCount()
+                result.upsertedCount(),
+                result.deactivatedCount()
         );
     }
 }

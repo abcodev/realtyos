@@ -24,48 +24,65 @@ public class ApartmentComplexService {
     private final ApartmentComplexBasisInfoRepository basisInfoRepository;
 
     public ApartmentComplexSyncResult fetchAndSaveTotalAptList(int pageNo, int numOfRows) {
-        AtomicInteger savedCount = new AtomicInteger();
+        AtomicInteger upsertedCount = new AtomicInteger();
         ApartmentComplexFetchResult fetchResult = fetchPort.fetchApartmentComplexes(pageNo, numOfRows, complexes -> {
-            int saved = saveNewComplexes(complexes);
-            savedCount.addAndGet(saved);
+            int upserted = upsertComplexes(complexes);
+            upsertedCount.addAndGet(upserted);
         });
 
-        log.info("아파트 단지 정보 수집 완료 - pageNo: {}, numOfRows: {}, fetched: {}, saved: {}, totalCount: {}",
-                pageNo, numOfRows, fetchResult.fetchedCount(), savedCount.get(), fetchResult.totalCount());
+        log.info("아파트 단지 정보 수집 완료 - pageNo: {}, numOfRows: {}, fetched: {}, upserted: {}, totalCount: {}",
+                pageNo, numOfRows, fetchResult.fetchedCount(), upsertedCount.get(), fetchResult.totalCount());
 
         return ApartmentComplexSyncResult.builder()
                 .requestedPageNo(pageNo)
                 .requestedNumOfRows(numOfRows)
                 .totalCount(fetchResult.totalCount())
                 .fetchedCount(fetchResult.fetchedCount())
-                .savedCount(savedCount.get())
+                .upsertedCount(upsertedCount.get())
+                .deactivatedCount(0)
                 .build();
     }
 
     @Transactional
-    protected int saveNewComplexes(List<ApartmentComplex> complexes) {
-        List<ApartmentComplex> newComplexes = complexes.stream()
+    protected int upsertComplexes(List<ApartmentComplex> complexes) {
+        List<ApartmentComplex> validComplexes = complexes.stream()
                 .filter(complex -> complex.kaptCode() != null && !complex.kaptCode().isBlank())
-                .filter(complex -> !repository.existsByKaptCode(complex.kaptCode()))
                 .toList();
 
-        if (newComplexes.isEmpty()) {
+        if (validComplexes.isEmpty()) {
             return 0;
         }
 
-        repository.saveAll(newComplexes);
-        return newComplexes.size();
+        return repository.upsertAll(validComplexes);
+    }
+
+    public ApartmentComplexSyncResult refreshAllComplexes(int numOfRows) {
+        ApartmentComplexSyncResult syncResult = fetchAndSaveTotalAptList(1, numOfRows);
+        int deactivatedComplexes = repository.markInactiveIfNotSynced();
+        int deactivatedBasisInfos = basisInfoRepository.markInactiveForInactiveComplexes();
+
+        log.info("아파트 단지 월간 새로고침 완료 - upserted: {}, deactivatedComplexes: {}, deactivatedBasisInfos: {}",
+                syncResult.upsertedCount(), deactivatedComplexes, deactivatedBasisInfos);
+
+        return ApartmentComplexSyncResult.builder()
+                .requestedPageNo(syncResult.requestedPageNo())
+                .requestedNumOfRows(syncResult.requestedNumOfRows())
+                .totalCount(syncResult.totalCount())
+                .fetchedCount(syncResult.fetchedCount())
+                .upsertedCount(syncResult.upsertedCount())
+                .deactivatedCount(deactivatedComplexes)
+                .build();
     }
 
     public ApartmentComplexBasisInfoSyncResult fetchAndSaveBasisInfo(int limit) {
         int normalizedLimit = Math.max(limit, 1);
-        List<String> kaptCodes = repository.findKaptCodesWithoutBasisInfo(normalizedLimit);
+        List<String> kaptCodes = repository.findActiveKaptCodes(normalizedLimit);
         int savedCount = 0;
         int skippedCount = 0;
         int failedCount = 0;
 
         for (String kaptCode : kaptCodes) {
-            if (kaptCode == null || kaptCode.isBlank() || basisInfoRepository.existsByKaptCode(kaptCode)) {
+            if (kaptCode == null || kaptCode.isBlank()) {
                 skippedCount++;
                 continue;
             }
@@ -78,7 +95,7 @@ public class ApartmentComplexService {
                     continue;
                 }
 
-                basisInfoRepository.save(basisInfo);
+                basisInfoRepository.upsert(basisInfo);
                 savedCount++;
             } catch (Exception e) {
                 failedCount++;
@@ -88,6 +105,39 @@ public class ApartmentComplexService {
 
         log.info("아파트 기본정보 수집 완료 - requestedLimit: {}, target: {}, saved: {}, skipped: {}, failed: {}",
                 normalizedLimit, kaptCodes.size(), savedCount, skippedCount, failedCount);
+
+        return ApartmentComplexBasisInfoSyncResult.builder()
+                .requestedLimit(normalizedLimit)
+                .targetCount(kaptCodes.size())
+                .savedCount(savedCount)
+                .skippedCount(skippedCount)
+                .failedCount(failedCount)
+                .build();
+    }
+
+    public ApartmentComplexBasisInfoSyncResult fetchAndSaveMissingBasisInfo(int limit) {
+        int normalizedLimit = Math.max(limit, 1);
+        List<String> kaptCodes = repository.findKaptCodesWithoutBasisInfo(normalizedLimit);
+        int savedCount = 0;
+        int skippedCount = 0;
+        int failedCount = 0;
+
+        for (String kaptCode : kaptCodes) {
+            try {
+                ApartmentComplexBasisInfo basisInfo = fetchPort.fetchApartmentComplexBasisInfo(kaptCode)
+                        .orElse(null);
+                if (basisInfo == null || basisInfo.kaptCode() == null || basisInfo.kaptCode().isBlank()) {
+                    skippedCount++;
+                    continue;
+                }
+
+                basisInfoRepository.upsert(basisInfo);
+                savedCount++;
+            } catch (Exception e) {
+                failedCount++;
+                log.warn("아파트 기본정보 저장 실패 - kaptCode: {}", kaptCode, e);
+            }
+        }
 
         return ApartmentComplexBasisInfoSyncResult.builder()
                 .requestedLimit(normalizedLimit)

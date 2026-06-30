@@ -13,6 +13,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import realtyos.server.application.common.entity.BaseEntity;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -48,4 +50,11 @@ public class ApartmentComplexJpaEntity extends BaseEntity {
 
     @Column(length = 500)
     private String fullAddress;
+
+    @Column(nullable = false)
+    private Boolean active;
+
+    private LocalDateTime lastSyncedAt;
+
+    private LocalDateTime deletedAt;
 }

@@ -2,6 +2,7 @@ package realtyos.server.application.realestate.infrastructure.client;
 
 import realtyos.server.application.realestate.infrastructure.client.dto.DealsApiResponse;
 import realtyos.server.application.realestate.infrastructure.client.dto.ApartmentComplexApiResponse;
+import realtyos.server.application.realestate.infrastructure.client.dto.ApartmentComplexBasisInfoApiResponse;
 import realtyos.server.application.realestate.infrastructure.client.dto.AptPblancApiResponse;
 import realtyos.server.application.realestate.infrastructure.client.dto.RentPblancApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,9 @@ public class RealestateExternalApiClient {
 
         @Value("${external.api.realestate.apt-list-base-url}")
         private String aptListBaseUrl;
+
+        @Value("${external.api.realestate.apt-basis-info-base-url}")
+        private String aptBasisInfoBaseUrl;
 
 //        public DealsApiResponse fetchDeals(String lawdCd, String dealYmd, int pageNo, int numOfRows) {
 //                RestClient restClient = restClientBuilder.build();
@@ -134,5 +138,25 @@ public class RealestateExternalApiClient {
                                 .accept(MediaType.APPLICATION_JSON)
                                 .retrieve()
                                 .body(ApartmentComplexApiResponse.class);
+        }
+
+        public ApartmentComplexBasisInfoApiResponse fetchApartmentComplexBasisInfo(String kaptCode) {
+                RestClient restClient = restClientBuilder.build();
+
+                URI uri = UriComponentsBuilder
+                                .fromUriString(aptBasisInfoBaseUrl + "/AptBasisInfoServiceV4/getAphusBassInfoV4")
+                                .queryParam("serviceKey", serviceKey)
+                                .queryParam("kaptCode", kaptCode)
+                                .queryParam("_type", "json")
+                                .build()
+                                .toUri();
+
+                log.info("Fetching apartment complex basis info from: {}", uri);
+
+                return restClient.get()
+                                .uri(uri)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .retrieve()
+                                .body(ApartmentComplexBasisInfoApiResponse.class);
         }
 }

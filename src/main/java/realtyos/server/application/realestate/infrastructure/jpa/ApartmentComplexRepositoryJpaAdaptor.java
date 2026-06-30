@@ -34,4 +34,9 @@ public class ApartmentComplexRepositoryJpaAdaptor implements ApartmentComplexRep
     public boolean existsByKaptCode(String kaptCode) {
         return jpaRepository.existsByKaptCode(kaptCode);
     }
+
+    @Override
+    public List<String> findKaptCodesWithoutBasisInfo(int limit) {
+        return jpaRepository.findKaptCodesWithoutBasisInfo(limit);
+    }
 }

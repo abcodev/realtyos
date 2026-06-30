@@ -1,6 +1,7 @@
 package realtyos.server.application.realestate.domain;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface DataFetchPort {
 
@@ -11,4 +12,6 @@ public interface DataFetchPort {
     List<RentPblanc> fetchPblPvtRentLttotPblancDetail(int page, int perPage);
 
     ApartmentComplexFetchResult fetchApartmentComplexes(int pageNo, int numOfRows, java.util.function.Consumer<List<ApartmentComplex>> pageConsumer);
+
+    Optional<ApartmentComplexBasisInfo> fetchApartmentComplexBasisInfo(String kaptCode);
 }

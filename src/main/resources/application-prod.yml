@@ -21,6 +21,7 @@ external:
       service-key: ${REALESTATE_SERVICE_KEY}
       deals-base-url: http://apis.data.go.kr/1613000
       apt-list-base-url: https://apis.data.go.kr/1613000
+      apt-basis-info-base-url: https://apis.data.go.kr/1613000
       pblanc-base-url: https://api.odcloud.kr/api/ApplyhomeInfoDetailSvc/v1
       vworld-service-key: ${VWORLD_SERVICE_KEY}
 

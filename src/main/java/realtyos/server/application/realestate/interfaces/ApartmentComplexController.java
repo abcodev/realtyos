@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import realtyos.server.application.common.response.ApiResponse;
 import realtyos.server.application.realestate.application.service.ApartmentComplexService;
+import realtyos.server.application.realestate.interfaces.dto.ApartmentComplexBasisInfoSyncResponse;
 import realtyos.server.application.realestate.interfaces.dto.ApartmentComplexSyncResponse;
 
 @RestController
@@ -27,6 +28,16 @@ public class ApartmentComplexController {
     ) {
         return ApiResponse.success(ApartmentComplexSyncResponse.from(
                 service.fetchAndSaveTotalAptList(pageNo, numOfRows)
+        ));
+    }
+
+    @PostMapping("/basis-info/sync")
+    @Operation(summary = "아파트 기본정보 수집", description = "저장된 kaptCode로 AptBasisInfoServiceV4 getAphusBassInfoV4 응답을 저장합니다.")
+    public ApiResponse<ApartmentComplexBasisInfoSyncResponse> syncBasisInfo(
+            @RequestParam(defaultValue = "100") int limit
+    ) {
+        return ApiResponse.success(ApartmentComplexBasisInfoSyncResponse.from(
+                service.fetchAndSaveBasisInfo(limit)
         ));
     }
 }

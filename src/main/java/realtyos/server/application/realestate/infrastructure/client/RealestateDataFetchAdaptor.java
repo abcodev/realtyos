@@ -2,12 +2,14 @@ package realtyos.server.application.realestate.infrastructure.client;
 
 import realtyos.server.application.realestate.domain.AptPblanc;
 import realtyos.server.application.realestate.domain.ApartmentComplex;
+import realtyos.server.application.realestate.domain.ApartmentComplexBasisInfo;
 import realtyos.server.application.realestate.domain.ApartmentComplexFetchResult;
 import realtyos.server.application.realestate.domain.BgdCodeRepository;
 import realtyos.server.application.realestate.domain.Deals;
 import realtyos.server.application.realestate.domain.RentPblanc;
 import realtyos.server.application.realestate.domain.DataFetchPort;
 import realtyos.server.application.realestate.infrastructure.client.dto.ApartmentComplexApiResponse;
+import realtyos.server.application.realestate.infrastructure.client.dto.ApartmentComplexBasisInfoApiResponse;
 import realtyos.server.application.realestate.infrastructure.client.dto.AptPblancApiResponse;
 import realtyos.server.application.realestate.infrastructure.client.dto.RentPblancApiResponse;
 import realtyos.server.application.realestate.infrastructure.client.dto.DealsApiResponse;
@@ -19,6 +21,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -266,6 +269,54 @@ public class RealestateDataFetchAdaptor implements DataFetchPort {
                 .as4(item.getAs4())
                 .bjdCode(item.getBjdCode())
                 .fullAddress(joinAddress(item.getAs1(), item.getAs2(), item.getAs3(), item.getAs4()))
+                .build();
+    }
+
+    @Override
+    public Optional<ApartmentComplexBasisInfo> fetchApartmentComplexBasisInfo(String kaptCode) {
+        ApartmentComplexBasisInfoApiResponse response = apiClient.fetchApartmentComplexBasisInfo(kaptCode);
+
+        if (response == null || response.body() == null || response.body().getItem() == null) {
+            log.warn("No data found or invalid response for apartment complex basis info - kaptCode: {}", kaptCode);
+            return Optional.empty();
+        }
+
+        return Optional.of(mapToApartmentComplexBasisInfoDomain(response.body().getItem()));
+    }
+
+    private ApartmentComplexBasisInfo mapToApartmentComplexBasisInfoDomain(ApartmentComplexBasisInfoApiResponse.Item item) {
+        return ApartmentComplexBasisInfo.builder()
+                .zipcode(item.getZipcode())
+                .kaptCode(item.getKaptCode())
+                .kaptName(item.getKaptName())
+                .kaptAddr(item.getKaptAddr())
+                .codeSaleNm(item.getCodeSaleNm())
+                .codeHeatNm(item.getCodeHeatNm())
+                .kaptTarea(item.getKaptTarea())
+                .kaptDongCnt(item.getKaptDongCnt())
+                .kaptdaCnt(item.getKaptdaCnt())
+                .kaptBcompany(item.getKaptBcompany())
+                .kaptAcompany(item.getKaptAcompany())
+                .kaptTel(item.getKaptTel())
+                .kaptFax(item.getKaptFax())
+                .kaptUrl(item.getKaptUrl())
+                .codeAptNm(item.getCodeAptNm())
+                .doroJuso(item.getDoroJuso())
+                .hoCnt(item.getHoCnt())
+                .codeMgrNm(item.getCodeMgrNm())
+                .codeHallNm(item.getCodeHallNm())
+                .kaptUsedate(item.getKaptUsedate())
+                .kaptMarea(item.getKaptMarea())
+                .kaptMparea60(item.getKaptMparea60())
+                .kaptMparea85(item.getKaptMparea85())
+                .kaptMparea135(item.getKaptMparea135())
+                .kaptMparea136(item.getKaptMparea136())
+                .privArea(item.getPrivArea())
+                .bjdCode(item.getBjdCode())
+                .kaptTopFloor(item.getKaptTopFloor())
+                .ktownFlrNo(item.getKtownFlrNo())
+                .kaptBaseFloor(item.getKaptBaseFloor())
+                .kaptdEcntp(item.getKaptdEcntp())
                 .build();
     }
 

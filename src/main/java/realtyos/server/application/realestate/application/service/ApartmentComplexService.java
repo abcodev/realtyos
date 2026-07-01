@@ -19,6 +19,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 @RequiredArgsConstructor
 public class ApartmentComplexService {
 
+    private static final int DEFAULT_BASIS_INFO_BATCH_SIZE = 500;
+
     private final DataFetchPort fetchPort;
     private final ApartmentComplexRepository repository;
     private final ApartmentComplexBasisInfoRepository basisInfoRepository;
@@ -118,6 +120,51 @@ public class ApartmentComplexService {
     public ApartmentComplexBasisInfoSyncResult fetchAndSaveMissingBasisInfo(int limit) {
         int normalizedLimit = Math.max(limit, 1);
         List<String> kaptCodes = repository.findKaptCodesWithoutBasisInfo(normalizedLimit);
+        return fetchAndSaveBasisInfoByKaptCodes(normalizedLimit, kaptCodes);
+    }
+
+    public ApartmentComplexBasisInfoSyncResult fetchAndSaveAllMissingBasisInfo() {
+        int totalTargetCount = 0;
+        int totalSavedCount = 0;
+        int totalSkippedCount = 0;
+        int totalFailedCount = 0;
+
+        while (true) {
+            List<String> kaptCodes = repository.findKaptCodesWithoutBasisInfo(DEFAULT_BASIS_INFO_BATCH_SIZE);
+            if (kaptCodes.isEmpty()) {
+                break;
+            }
+
+            ApartmentComplexBasisInfoSyncResult batchResult = fetchAndSaveBasisInfoByKaptCodes(
+                    DEFAULT_BASIS_INFO_BATCH_SIZE,
+                    kaptCodes
+            );
+
+            totalTargetCount += batchResult.targetCount();
+            totalSavedCount += batchResult.savedCount();
+            totalSkippedCount += batchResult.skippedCount();
+            totalFailedCount += batchResult.failedCount();
+
+            log.info("아파트 누락 기본정보 전체 수집 진행 - batchTarget: {}, totalSaved: {}, totalSkipped: {}, totalFailed: {}",
+                    batchResult.targetCount(), totalSavedCount, totalSkippedCount, totalFailedCount);
+
+            if (batchResult.savedCount() == 0) {
+                log.warn("아파트 누락 기본정보 수집 중단 - 현재 배치에서 저장된 데이터가 없습니다. skipped: {}, failed: {}",
+                        batchResult.skippedCount(), batchResult.failedCount());
+                break;
+            }
+        }
+
+        return ApartmentComplexBasisInfoSyncResult.builder()
+                .requestedLimit(0)
+                .targetCount(totalTargetCount)
+                .savedCount(totalSavedCount)
+                .skippedCount(totalSkippedCount)
+                .failedCount(totalFailedCount)
+                .build();
+    }
+
+    private ApartmentComplexBasisInfoSyncResult fetchAndSaveBasisInfoByKaptCodes(int requestedLimit, List<String> kaptCodes) {
         int savedCount = 0;
         int skippedCount = 0;
         int failedCount = 0;
@@ -140,7 +187,7 @@ public class ApartmentComplexService {
         }
 
         return ApartmentComplexBasisInfoSyncResult.builder()
-                .requestedLimit(normalizedLimit)
+                .requestedLimit(requestedLimit)
                 .targetCount(kaptCodes.size())
                 .savedCount(savedCount)
                 .skippedCount(skippedCount)

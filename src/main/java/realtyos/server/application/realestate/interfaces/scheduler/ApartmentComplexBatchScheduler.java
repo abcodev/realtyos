@@ -19,7 +19,7 @@ public class ApartmentComplexBatchScheduler {
 
         try {
             service.refreshAllComplexes(1000);
-            service.fetchAndSaveBasisInfo(100000);
+            service.fetchAndSaveAllMissingBasisInfo();
             log.info("아파트 단지 월간 동기화 완료");
         } catch (Exception e) {
             log.error("아파트 단지 월간 동기화 실패", e);

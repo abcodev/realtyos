@@ -51,6 +51,14 @@ public class ApartmentComplexController {
         ));
     }
 
+    @PostMapping("/basis-info/sync-missing/all")
+    @Operation(summary = "전체 누락 아파트 기본정보 수집", description = "저장된 kaptCode 중 기본정보가 없는 단지를 내부 배치 단위로 끝까지 수집합니다.")
+    public ApiResponse<ApartmentComplexBasisInfoSyncResponse> syncAllMissingBasisInfo() {
+        return ApiResponse.success(ApartmentComplexBasisInfoSyncResponse.from(
+                service.fetchAndSaveAllMissingBasisInfo()
+        ));
+    }
+
     @PostMapping("/refresh")
     @Operation(summary = "아파트 단지 정보 전체 새로고침", description = "전체 단지 목록을 upsert하고 사라진 단지를 비활성 처리합니다.")
     public ApiResponse<ApartmentComplexSyncResponse> refresh(

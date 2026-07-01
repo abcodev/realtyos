@@ -20,7 +20,7 @@ import java.net.URI;
 @RequiredArgsConstructor
 public class RealestateExternalApiClient {
 
-        private final RestClient.Builder restClientBuilder;
+        private final RestClient restClient;
 
         @Value("${external.api.realestate.service-key}")
         private String serviceKey;
@@ -59,8 +59,6 @@ public class RealestateExternalApiClient {
 //        }
 
         public DealsApiResponse fetchDeals(String lawdCd, String dealYmd, int pageNo, int numOfRows) {
-                RestClient restClient = restClientBuilder.build();
-
                 URI uri = UriComponentsBuilder.fromUriString(dealsBaseUrl + "/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev")
                                 .queryParam("serviceKey", serviceKey)
                                 .queryParam("LAWD_CD", lawdCd)
@@ -80,8 +78,6 @@ public class RealestateExternalApiClient {
         }
 
         public AptPblancApiResponse fetchAptLttotPblancDetail(int page, int perPage) {
-                RestClient restClient = restClientBuilder.build();
-
                 URI uri = UriComponentsBuilder
                                 .fromUriString(pblancBaseUrl + "/getAPTLttotPblancDetail")
                                 .queryParam("page", page)
@@ -100,8 +96,6 @@ public class RealestateExternalApiClient {
         }
 
         public RentPblancApiResponse fetchPblPvtRentLttotPblancDetail(int page, int perPage) {
-                RestClient restClient = restClientBuilder.build();
-
                 URI uri = UriComponentsBuilder.fromUriString(
                                 pblancBaseUrl + "/getPblPvtRentLttotPblancDetail")
                                 .queryParam("page", page)
@@ -120,8 +114,6 @@ public class RealestateExternalApiClient {
         }
 
         public ApartmentComplexApiResponse fetchTotalAptList(int pageNo, int numOfRows) {
-                RestClient restClient = restClientBuilder.build();
-
                 URI uri = UriComponentsBuilder
                                 .fromUriString(aptListBaseUrl + "/AptListService3/getTotalAptList3")
                                 .queryParam("serviceKey", serviceKey)
@@ -141,8 +133,6 @@ public class RealestateExternalApiClient {
         }
 
         public ApartmentComplexBasisInfoApiResponse fetchApartmentComplexBasisInfo(String kaptCode) {
-                RestClient restClient = restClientBuilder.build();
-
                 URI uri = UriComponentsBuilder
                                 .fromUriString(aptBasisInfoBaseUrl + "/AptBasisInfoServiceV4/getAphusBassInfoV4")
                                 .queryParam("serviceKey", serviceKey)

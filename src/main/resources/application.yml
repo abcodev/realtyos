@@ -81,7 +81,7 @@ management:
       show-details: never
 
 auth:
-  frontend-redirect-url: ${AUTH_FRONTEND_REDIRECT_URL:http://localhost:5173/oauth2/callback}
+  frontend-redirect-url: ${AUTH_FRONTEND_REDIRECT_URL:http://localhost:5177/oauth2/callback}
 
 
 # 번역 프로바이더 선택: GOOGLE (Google Cloud Translation) 또는 GEMINI (Gemini API, 저비용)

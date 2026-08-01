@@ -3,6 +3,8 @@ package realtyos.server.application.rag.application;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import realtyos.server.application.common.exception.BusinessException;
+import realtyos.server.application.common.exception.ErrorCode;
 import realtyos.server.application.rag.domain.RagQueryRewritePolicy;
 import realtyos.server.application.rag.domain.RagAnswerSource;
 import realtyos.server.application.rag.domain.RagSearchCondition;
@@ -80,6 +82,14 @@ public class UserAiMemoryService {
         UserAiMemory current = repository.findByUserId(userId)
                 .orElseGet(() -> UserAiMemory.empty(userId));
         return repository.save(current.updatePreference(preferredRegion, minPrice, maxPrice));
+    }
+
+    @Transactional
+    public void deleteEvent(Long userId, Long eventId) {
+        if (!repository.existsEventByIdAndUserId(eventId, userId)) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "해당 질문 기록을 찾을 수 없습니다.");
+        }
+        repository.deleteEventById(eventId);
     }
 
     @Transactional

@@ -196,6 +196,11 @@ public class DealsElasticsearchRepository implements DealsSearchIndexer, DealsSe
                 "index.max_ngram_diff", 28,
                 "analysis", Map.of(
                         "tokenizer", Map.of(
+                                "apt_name_nori_tokenizer", Map.of(
+                                        "type", "nori_tokenizer",
+                                        "decompound_mode", "mixed",
+                                        "discard_punctuation", true
+                                ),
                                 "apt_name_ngram_tokenizer", Map.of(
                                         "type", "ngram",
                                         "min_gram", 2,
@@ -204,6 +209,11 @@ public class DealsElasticsearchRepository implements DealsSearchIndexer, DealsSe
                                 )
                         ),
                         "analyzer", Map.of(
+                                "apt_name_nori_analyzer", Map.of(
+                                        "type", "custom",
+                                        "tokenizer", "apt_name_nori_tokenizer",
+                                        "filter", List.of("nori_readingform", "lowercase")
+                                ),
                                 "apt_name_ngram_analyzer", Map.of(
                                         "type", "custom",
                                         "tokenizer", "apt_name_ngram_tokenizer",
@@ -218,13 +228,14 @@ public class DealsElasticsearchRepository implements DealsSearchIndexer, DealsSe
                 Map.entry("umdName", Map.of("type", "text", "analyzer", "standard", "fields", Map.of("keyword", Map.of("type", "keyword")))),
                 Map.entry("aptName", Map.of(
                         "type", "text",
-                        "analyzer", "standard",
+                        "analyzer", "apt_name_nori_analyzer",
+                        "search_analyzer", "apt_name_nori_analyzer",
                         "fields", Map.of(
                                 "keyword", Map.of("type", "keyword"),
                                 "ngram", Map.of(
                                         "type", "text",
                                         "analyzer", "apt_name_ngram_analyzer",
-                                        "search_analyzer", "standard"
+                                        "search_analyzer", "apt_name_nori_analyzer"
                                 )
                         )
                 )),

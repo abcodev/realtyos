@@ -75,6 +75,16 @@ public class UserAiMemoryRepositoryJpaAdaptor implements UserAiMemoryRepository 
         eventJpaRepository.deleteByUserId(userId);
     }
 
+    @Override
+    public boolean existsEventByIdAndUserId(Long eventId, Long userId) {
+        return eventJpaRepository.existsByIdAndUserId(eventId, userId);
+    }
+
+    @Override
+    public void deleteEventById(Long eventId) {
+        eventJpaRepository.deleteById(eventId);
+    }
+
     private UserAiMemoryEventJpaEntity toEntity(UserAiMemoryEvent event) {
         return UserAiMemoryEventJpaEntity.create(
                 event.userId(),

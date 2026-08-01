@@ -13,4 +13,6 @@ public interface UserAiMemoryEventJpaRepository extends JpaRepository<UserAiMemo
     List<UserAiMemoryEventJpaEntity> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
     void deleteByUserId(Long userId);
+
+    boolean existsByIdAndUserId(Long id, Long userId);
 }

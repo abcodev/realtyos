@@ -18,4 +18,8 @@ public interface UserAiMemoryRepository {
     List<UserAiMemoryEvent> findRecentRegionEvents(Long userId, int limit);
 
     void deleteEventsByUserId(Long userId);
+
+    boolean existsEventByIdAndUserId(Long eventId, Long userId);
+
+    void deleteEventById(Long eventId);
 }

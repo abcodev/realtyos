@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -59,6 +60,16 @@ public class UserAiMemoryController {
                 request.minPrice(),
                 request.maxPrice()
         )));
+    }
+
+    @DeleteMapping("/me/events/{eventId}")
+    @Operation(summary = "최근 질문 단건 삭제", description = "현재 로그인 사용자의 특정 질문 기록을 삭제합니다.")
+    public ApiResponse<Void> deleteMyMemoryEvent(
+            @CurrentUser Long userId,
+            @PathVariable Long eventId
+    ) {
+        memoryService.deleteEvent(userId, eventId);
+        return ApiResponse.empty();
     }
 
     @DeleteMapping("/me")
